@@ -1,0 +1,21 @@
+// C++ code
+//
+void setup()
+{
+  pinMode(13, OUTPUT);
+  pinMode(A0, INPUT);
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  int soil=analogRead(A0);
+  Serial.println(soil);
+  if(soil >= 300 && soil <= 800){
+    
+  digitalWrite(13, HIGH);
+  }
+  else{
+  digitalWrite(13, LOW);
+}
+}
