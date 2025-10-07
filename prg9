@@ -1,0 +1,75 @@
+// Program
+
+#define PIEZO_PIN 9     // Buzzer connected to digital pin 9
+const int trigger = 6;  // Ultrasonic trigger pin
+const int echo = 7;     // Ultrasonic echo pin
+const int soundPin = A0; // Sound sensor connected to analog pin A0
+
+// Variables for distance measurement
+float distance;
+float dist_inches;
+
+// Threshold values
+const float DIST_THRESHOLD = 5.0; // Distance threshold in inches
+const int SOUND_THRESHOLD = 520;  // Sound threshold (0-1023) - adjust as needed
+
+void setup() {
+  Serial.begin(9600); // Start Serial Monitor at 9600 baud rate
+
+  // Setup ultrasonic sensor pins
+  pinMode(trigger, OUTPUT); // Trigger pin is output (sends signal)
+  pinMode(echo, INPUT);     // Echo pin is input (receives signal)
+
+  // Setup buzzer pin
+  pinMode(PIEZO_PIN, OUTPUT);
+}
+
+void loop() {
+  // Send a short LOW pulse to clear the trigger
+  digitalWrite(trigger, LOW);
+  delayMicroseconds(5);
+
+  // Send a HIGH pulse of 10µs to trigger the ultrasonic burst
+  digitalWrite(trigger, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigger, LOW);
+
+  // Measure the time taken for the echo signal to return
+  distance = pulseIn(echo, HIGH);
+
+  // Convert the time into distance (in cm)
+  // 0.0001657 is a scaling factor (speed of sound conversion)
+  distance = distance * 0.0001657;
+
+  // Convert cm to inches
+  dist_inches = distance * 0.3937; // Note: Correct conversion is 1 cm ≈ 0.3937 inches. The image says 39.37, which is a common error (cm to meters to inches conversion factor might be meant to be 0.01 * 39.37). Using the standard conversion for $cm \to in$.
+
+  // --- Sound Measurement ---
+  int soundValue = analogRead(soundPin); // Read analog value (0-1023)
+
+  // --- Intrusion Detection Logic ---
+  if (dist_inches < DIST_THRESHOLD && soundValue > SOUND_THRESHOLD) {
+    // Case 1: Both distance is small AND loud sound detected
+    // Intrusion confirmed
+    tone(PIEZO_PIN, 1500); // Play buzzer sound at 1500 Hz
+    delay(200);             // Short beep duration
+    noTone(PIEZO_PIN);      // Stop buzzer
+
+    Serial.print("Intrusion Detected! Object with sound at distance:");
+    Serial.print(dist_inches);
+    Serial.println(" in");
+  } else if (dist_inches < DIST_THRESHOLD) {
+    // Case 2: Only object detected nearby (movement without sound)
+    Serial.print("Object detected at distance: ");
+    Serial.print(dist_inches);
+    Serial.println(" in");
+  } else if (soundValue > SOUND_THRESHOLD) {
+    // Case 3: Only suspicious sound detected (no object close)
+    Serial.println("Sound detected");
+  } else {
+    // Case 4: Neither object nor sound detected
+    Serial.println("No intrusion detected.");
+  }
+
+  delay(200); // Small delay before next loop
+}
